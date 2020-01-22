@@ -24,25 +24,45 @@
 
 \section*{Abstract}
 
-This section is not numbered (see the star) as would be appropriate for something like an abstract.
+The following describes two optimization problems, one unconstrained and one constrained. The homework assignment explores using a optimization solver using python. It also explores topics such as dimensionality and accuracy trade offs.
 
 \section{Brachistrochrone}
 
-In \cref{fig:sub} you can see a subfigure example, I can also refer to part of the figure if I want (\cref{fig:sub1}).
+\subsection{Introduction}
+
+\begin{equation}
+\begin{aligned}
+\text{minimize} & \quad J=\sum_{i=1}^{n-1} \frac{\sqrt{\Delta x_i^2+\Delta y_i^2}}{\sqrt{H-y_{i+1}-\mu_{k}x_{i+1}} + \sqrt{H-y_i-\mu_i x_i} } \\
+\text{with respect to} & \quad y_1 ... y_{n-1} \\
+\text{subject to} & \quad x_0=0, y_0=1, x_n=1, y_n=0  \\
+\end{aligned}
+\end{equation}
+
+For complete problem formulation and parameters see \cite{ning}.
+
+\subsection{Results}
+
+
+%\begin{figure}[htbp]
+%	\centering
+%	\subfloat[first subcaption]{
+%		\includegraphics[width=0.45\textwidth]{figures/brachistrochrone.eps}
+%		\label{fig:sub1}
+%	}
+%	\qquad
+%	\subfloat[second subcaption]{
+%		\includegraphics[width=0.45\textwidth]{figures/128pts.eps}
+%		\label{fig:sub2}
+%	}
+%	\caption{Overall caption, which should be a sentence.}
+%	\label{fig:sub}
+%\end{figure}
 
 \begin{figure}[htbp]
 	\centering
-	\subfloat[first subcaption]{
-		\includegraphics[width=0.45\textwidth]{figures/brachistrochrone.eps}
-		\label{fig:sub1}
-	}
-	\qquad
-	\subfloat[second subcaption]{
-		\includegraphics[width=0.45\textwidth]{figures/128pts.eps}
-		\label{fig:sub2}
-	}
+	\includegraphics[width=0.75\textwidth]{figures/brachistrochrone.eps}
 	\caption{Overall caption, which should be a sentence.}
-	\label{fig:sub}
+	\label{fig:results}
 \end{figure}
 
 \begin{figure}[htbp]
