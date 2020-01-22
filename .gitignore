@@ -1,0 +1,8 @@
+build*/
+logs/
+*.user*
+*.m~
+*.gch
+*.pyc
+*.h.gch
+
