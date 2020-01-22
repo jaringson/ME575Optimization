@@ -6,16 +6,18 @@ from IPython.core.debugger import set_trace
 
 import matplotlib.pyplot as plt
 
+import time
+
 start_pt = np.array([0,1])
 end_pt = np.array([1,0])
 
-num_pts = 64
+num_pts = [4,8,16,32,64,128]
 # all_x1 = np.linspace(start_pt[0], 0.1, num_pts//4)
 # all_x2 = np.linspace(0.1, end_pt[0], num_pts - all_x1.shape[0])
 # all_x = np.concatenate((all_x1,all_x2))
 
 
-all_x = np.linspace(start_pt[0], end_pt[0], num_pts)
+
 
 mu = 0.3
 H = start_pt[1]
@@ -23,14 +25,13 @@ H = start_pt[1]
 
 def fun(y, g=0):
 
-    all_y = np.zeros(num_pts)
+    all_y = np.zeros(num)
     all_y[0] = start_pt[1]
     all_y[1:-1] = y
     all_y[-1] = end_pt[1]
      # = np.concatenate((start_pt[1], x, end_pt[1]))
     sum = 0
-    # set_trace()
-    for i in range(0,num_pts-1):
+    for i in range(0,num-1):
         # print(i)
         xi = all_x[i]
         yi = all_y[i]
@@ -46,46 +47,87 @@ def fun(y, g=0):
     # print(sum)
     return sum
 
-def constraint1(x):
-    return 1-x[0]**2-x[1]**2
 
-def constraint2(x):
-    return 5-x[0]-3*x[1]
+fig = plt.figure()
+ax = fig.add_subplot(111)
 
-# c1 = NonlinearConstraint()
+y0 = np.ones((num_pts[0]-2))*0
 
+all_times = []
+all_wall_times = []
+# all_x = []
+for num in num_pts:
+    y0 = np.linspace(1-1.0/num,1.0/num,num-2)
+    # set_trace()
 
-c1 = {'type':'ineq', 'fun':constraint1}
-c2 = {'type':'ineq', 'fun':constraint2}
+    all_x = np.linspace(start_pt[0], end_pt[0], num)
 
-# y0 = np.ones((num_pts-2))*0
-y0 = np.linspace(0.9,0.1,num_pts-2)
+    start = time.time()
+    fit = minimize(fun, y0,  method="BFGS") #, options={'disp':True})
+    end = time.time()
+    all_wall_times.append(end-start)
+    print("-------------")
+    print(num)
+    # print(fit)
+    # print(fun(fit.x))
+    # print(fun(fit.x, g = 9.81))
+    # all_x.append(fit.x)
+    all_times.append(fun(fit.x, g = 9.81))
 
-# for i in range(num_pts//2-2):
-#     y0[2*i] = intermediate[i]
-#     y0[2*i+1] = intermediate[i]
+    # y0 = []
+    # for i in range(len(fit.x)+1):
+    #     if i == 0:
+    #         y0.append((start_pt[1]+fit.x[i])/2.0)
+    #         y0.append(fit.x[i])
+    #         continue
+    #     if i == len(fit.x):
+    #         y0.append((fit.x[i-1]+end_pt[1])/2.0)
+    #         y0.append((fit.x[i-1]+end_pt[1])/4.0)
+    #         # y0.append()
+    #     else:
+    #         y0.append((fit.x[i-1]+fit.x[i])/2.0)
+    #         y0.append(fit.x[i])
 
-# fit = minimize(fun, start,  method="SLSQP", constraints=(c1,c2), options={'disp':True})
-fit = minimize(fun, y0,  method="BFGS", options={'disp':True})
-# print(fit.x)
-print(fun(fit.x))
-print(fun(fit.x, g = 9.81))
+    all_y = np.zeros(num)
+    all_y[0] = start_pt[1]
+    all_y[1:-1] = fit.x
+    all_y[-1] = end_pt[1]
 
-all_y = np.zeros(num_pts)
-all_y[0] = start_pt[1]
-all_y[1:-1] = fit.x
-all_y[-1] = end_pt[1]
+    ax.scatter(all_x, all_y)
+    ax.plot(all_x, all_y, label=num)
 
 theta = np.linspace(0,2.412,100)
 a = 0.572917
 truth_x = a*(theta-np.sin(theta))
 truth_y = -a*(1-np.cos(theta))+1
 
+
+ax.set_title('Brachistochrone')
+ax.set_xlabel('X (m)')
+ax.set_ylabel('Y (m)')
+# ax.plot(truth_x, truth_y)
+ax.legend()
+
+print(all_times)
+print(np.average(all_times))
+
 fig = plt.figure()
 ax = fig.add_subplot(111)
-# ax.set_title('Velocity')
+
 ax.scatter(all_x, all_y)
-ax.plot(all_x, all_y)
-ax.plot(truth_x, truth_y)
+ax.plot(all_x, all_y, label=num)
+ax.set_title('Brachistochrone 128 Points')
+ax.set_xlabel('X (m)')
+ax.set_ylabel('Y (m)')
+
+fig = plt.figure()
+ax = fig.add_subplot(211)
+ax.set_title("Brachistochrone Dimensionality")
+ax.plot(num_pts, all_wall_times)
+ax.set_ylabel("Wall Time (sec)")
+ax = fig.add_subplot(212)
+ax.plot(num_pts, all_times)
+ax.set_xlabel('Number of Points')
+ax.set_ylabel("Travel Time (sec)")
 
 plt.show()

@@ -87,7 +87,7 @@ def callbackF2(Xi):
     max = np.max(np.abs(constraintAll(Xi)))
 
     max_const_vio.append(max)
-    
+
 
 all_constraints = {'type':'ineq', 'fun':constraintAll}
 callback = callbackF2
@@ -102,6 +102,7 @@ fit = minimize(solve,
     options={'disp':True},
     callback=callback)
 
+print(truss(fit.x))
 print(fit.x)
 print(num_evals)
 
@@ -113,6 +114,7 @@ ax.set_ylabel("Mass (lbs)")
 
 ax = fig.add_subplot(212)
 ax.plot(range(len(max_const_vio)), max_const_vio)
+plt.gcf().subplots_adjust(left=0.15)
 ax.set_ylabel("Max Constraint")
 ax.set_xlabel("Iterations")
 
