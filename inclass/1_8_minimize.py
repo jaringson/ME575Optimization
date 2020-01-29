@@ -6,10 +6,10 @@ def fun(x):
     return (1-x[0])**2+100*(x[1]-x[0]**2)**2
 
 def constraint1(x):
-    return 1-x[0]**2-x[1]**2
+    return 1-x[0]**2-x[1]**2 # >= 0
 
 def constraint2(x):
-    return 5-x[0]-3*x[1]
+    return 5-x[0]-3*x[1] # >= 0
 
 # c1 = NonlinearConstraint()
 
