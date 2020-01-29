@@ -11,9 +11,11 @@ import time
 start_pt = np.array([0,1])
 end_pt = np.array([1,0])
 
+# num_pts = [4,8,16,32,64,128,256]
 num_pts = [4,8,16,32,64,128]
+# num_pts = []
 
-linear_start = False
+linear_start = True
 
 mu = 0.3
 H = start_pt[1]
@@ -95,9 +97,8 @@ for num in num_pts:
     all_y[1:-1] = fit.x
     all_y[-1] = end_pt[1]
 
-    ax.scatter(all_x, all_y)
+    ax.scatter(all_x, all_y,s=3)
     ax.plot(all_x, all_y, label=num)
-
 
 #### Truth Data for no friction
 theta = np.linspace(0,2.412,100)
@@ -130,15 +131,19 @@ plt.gcf().subplots_adjust(left=0.15)
 
 axes[0].set_title("Brachistochrone Dimensionality")
 axes[0].plot(num_pts, all_times)
+axes[0].scatter(num_pts, all_times)
 axes[0].set_ylabel("Travel\nTime (s)")
 
 axes[1].plot(num_pts, all_wall_times)
+axes[1].scatter(num_pts, all_wall_times)
 axes[1].set_ylabel("Solve\nTime (s)")
 
 axes[2].plot(num_pts, all_function_evals)
+axes[2].scatter(num_pts, all_function_evals)
 axes[2].set_ylabel("Function\nEvaluations")
 
 axes[3].plot(num_pts, all_nit)
+axes[3].scatter(num_pts, all_nit)
 axes[3].set_ylabel("Number\nIterations")
 axes[3].set_xlabel('Number of Points')
 
