@@ -20,7 +20,7 @@ dx = []
 np.set_printoptions(15)
 
 opt.perturb = 0.1
-print(opt.gradient_func(np.array([2.0])))
+print(opt.gradient_func(np.array([2.0]), update=False))
 
 opt.perturb = 10**-6
 print(opt.gradient_func(np.array([2.0])))

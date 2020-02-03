@@ -9,48 +9,57 @@ import time
 
 from optimizer import Optimizer
 
-start_pt = np.array([0,1])
-end_pt = np.array([1,0])
+funct_eval = 0
 
-# num_pts = [4,8,16,32,64,128,256]
-num_pts = [60,4,8,16,32,64,128]
-# num_pts = []
+def brachistochrone(yint):
+    global funct_eval
+    funct_eval += 1
+    # global fcalls #This is for Dr. Ning's purposes I believe
+    # if fcalls > 1e4:
+    #     return
 
-linear_start = True
+    mu_k = 0.3
 
-mu = 0.3
-H = start_pt[1]
+    y = np.concatenate(([1], yint, [0]), axis=0) #check this is the same
+    n = y.size
+    x = np.linspace(0.0, 1.0, n)
+    g = np.zeros(n-2,dtype=yint.dtype)
 
+    T = 0.0
+    for i in range(n-1): #start from 1 or 0? #can i vectorize this??
+        ds = np.sqrt((x[i+1] - x[i])**2 + (y[i+1] - y[i])**2)
 
-#### Function to evaluate Brachistochrone time
-def fun(y, g=0):
-
-    all_y = np.zeros(num)
-    all_y[0] = start_pt[1]
-    all_y[1:-1] = y
-    all_y[-1] = end_pt[1]
-
-    sum = 0
-    for i in range(0,num-1):
-
-        xi = all_x[i]
-        yi = all_y[i]
-        xip1 = all_x[i+1]
-        yip1 = all_y[i+1]
-        dx = xip1-xi
-        dy = yip1-yi
-        if g == 0:
-            sum += np.sqrt(dx**2+dy**2)/(np.sqrt(H-yip1-mu*xip1)+np.sqrt(H-yi-mu*xi))
+        if 1 - y[i+1] - mu_k * x[i+1] < 0 or 1 - y[i] - mu_k * x[i] < 0:
+            T += 10
         else:
-            sum += np.sqrt(2/g) * np.sqrt(dx**2+dy**2)/(np.sqrt(H-yip1-mu*xip1)+np.sqrt(H-yi-mu*xi))
+            vbar = np.sqrt(1 - y[i+1] - mu_k * x[i+1]) + np.sqrt(1 - y[i] - mu_k * x[i])
 
-    return sum
+            # gradient
+            if i > 0:
+                dsdyi = 0.5/ds*2 * (y[i+1] - y[i]) * -1
+                dvdyi = 0.5 / np.sqrt(1 - y[i] - mu_k * x[i]) * -1
+                dtdyi = (vbar * dsdyi - ds*dvdyi)/(vbar**2)
+                g[i-1] += dtdyi
+            if i < n-2:
+                dsdyip = 0.5/ds*2 * (y[i+1] - y[i])
+                dvdyip = 0.5 / np.sqrt(1 - y[i+1] - mu_k * x[i+1]) * -1
+                dtdyip = (vbar * dsdyip - ds * dvdyip) / (vbar**2)
+                g[i] += dtdyip
+
+            T += ds/vbar
+
+    f = T
+    # fcalls += 1
+
+    return f
 
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
-y0 = np.ones((num_pts[0]-2))*0
+num_pts = [60]
+y0 = np.linspace(1,0,num_pts[0])
+y0 = y0[1:-1]
 
 all_times = []
 all_wall_times = []
@@ -61,47 +70,36 @@ all_nit = []
 
 #### Iterate over number of points
 for num in num_pts:
-    if linear_start:
-        y0 = np.linspace(1-1.0/num,1.0/num,num-2)
 
-    all_x = np.linspace(start_pt[0], end_pt[0], num)
+    all_x = np.linspace(0, 1, num)
 
     start = time.time()
-    opt = Optimizer(fun, y0)
+    opt = Optimizer(brachistochrone, y0)
+    # print(opt.gradient_func(y0))
     opt.minimize()
+    print(funct_eval)
     set_trace()
+
+
     # fit = minimize(fun, y0,  method="BFGS")
     end = time.time()
 
     #### Saving Values
     all_wall_times.append(end-start)
-    all_function_evals.append(fit.nfev)
-    all_nit.append(fit.nit)
+    # all_function_evals.append(fit.nfev)
+    # all_nit.append(fit.nit)
 
     #### Output for debugging
     print("-------------")
     print(num)
-    all_times.append(fun(fit.x, g = 9.81))
+    all_times.append(brachistochrone(opt.Xk_1))
 
-    if not linear_start:
-        y0 = []
-        for i in range(len(fit.x)+1):
-            if i == 0:
-                y0.append((start_pt[1]+fit.x[i])/2.0)
-                y0.append(fit.x[i])
-                continue
-            if i == len(fit.x):
-                y0.append((fit.x[i-1]+end_pt[1])/2.0)
-                y0.append((fit.x[i-1]+end_pt[1])/4.0)
-            else:
-                y0.append((fit.x[i-1]+fit.x[i])/2.0)
-                y0.append(fit.x[i])
 
     #### Adding to plot
     all_y = np.zeros(num)
-    all_y[0] = start_pt[1]
-    all_y[1:-1] = fit.x
-    all_y[-1] = end_pt[1]
+    all_y[0] = 1
+    all_y[1:-1] = opt.Xk_1
+    all_y[-1] = 0
 
     ax.scatter(all_x, all_y,s=3)
     ax.plot(all_x, all_y, label=num)
@@ -122,35 +120,35 @@ ax.legend()
 print(all_times)
 print(np.average(all_times))
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
+# fig = plt.figure()
+# ax = fig.add_subplot(111)
+#
+# ax.scatter(all_x, all_y)
+# ax.plot(all_x, all_y, label=num)
+# ax.set_title('Brachistochrone 128 Points')
+# ax.set_xlabel('X (m)')
+# ax.set_ylabel('Y (m)')
 
-ax.scatter(all_x, all_y)
-ax.plot(all_x, all_y, label=num)
-ax.set_title('Brachistochrone 128 Points')
-ax.set_xlabel('X (m)')
-ax.set_ylabel('Y (m)')
 
-
-fig, axes = plt.subplots(nrows=4, ncols=1, sharex=True)
-plt.gcf().subplots_adjust(left=0.15)
-
-axes[0].set_title("Brachistochrone Dimensionality")
-axes[0].plot(num_pts, all_times)
-axes[0].scatter(num_pts, all_times)
-axes[0].set_ylabel("Travel\nTime (s)")
-
-axes[1].plot(num_pts, all_wall_times)
-axes[1].scatter(num_pts, all_wall_times)
-axes[1].set_ylabel("Solve\nTime (s)")
-
-axes[2].plot(num_pts, all_function_evals)
-axes[2].scatter(num_pts, all_function_evals)
-axes[2].set_ylabel("Function\nEvaluations")
-
-axes[3].plot(num_pts, all_nit)
-axes[3].scatter(num_pts, all_nit)
-axes[3].set_ylabel("Number\nIterations")
-axes[3].set_xlabel('Number of Points')
+# fig, axes = plt.subplots(nrows=4, ncols=1, sharex=True)
+# plt.gcf().subplots_adjust(left=0.15)
+#
+# axes[0].set_title("Brachistochrone Dimensionality")
+# axes[0].plot(num_pts, all_times)
+# axes[0].scatter(num_pts, all_times)
+# axes[0].set_ylabel("Travel\nTime (s)")
+#
+# axes[1].plot(num_pts, all_wall_times)
+# axes[1].scatter(num_pts, all_wall_times)
+# axes[1].set_ylabel("Solve\nTime (s)")
+#
+# axes[2].plot(num_pts, all_function_evals)
+# axes[2].scatter(num_pts, all_function_evals)
+# axes[2].set_ylabel("Function\nEvaluations")
+#
+# axes[3].plot(num_pts, all_nit)
+# axes[3].scatter(num_pts, all_nit)
+# axes[3].set_ylabel("Number\nIterations")
+# axes[3].set_xlabel('Number of Points')
 
 plt.show()
