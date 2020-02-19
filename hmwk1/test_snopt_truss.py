@@ -18,7 +18,7 @@ from pyoptsparse import Optimization, OPT
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--opt",help="optimizer",type=str, default='SNOPT')
+parser.add_argument("--opt",help="optimizer",type=str, default='SLSQP')
 args = parser.parse_args()
 optOptions = {}
 
@@ -101,7 +101,7 @@ opt = OPT(args.opt, options=optOptions)
 # set_trace()
 
 # Solution
-sol = opt(optProb)
+sol = opt(optProb, sens='FD')
 
 # Check Solution
 print(sol)

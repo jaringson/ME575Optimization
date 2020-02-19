@@ -1,6 +1,7 @@
-import numpy as np
-from copy import deepcopy
-from IPython.core.debugger import set_trace
+from optimizer import Optimizer
+from alg_types import DirType
+from alg_types import LineType
+
 
 def uncon(func, x0, epsilon_g, options=None):
     """An algorithm for unconstrained optimization.
@@ -32,12 +33,28 @@ def uncon(func, x0, epsilon_g, options=None):
         containing a convergence metric at each iteration.
     """
 
-    if options is None:
+    line_type = LineType.BRACKET
+    dir_type = DirType.QUASI
+    if options is not None:
+        line_type = options['line_type']
+        dir_type = options['dir_type']
         # set defaults here for how you want me to run it.
 
     # Your code goes here!  You can (and should) call other functions, but make
     # sure you do not change the function signature for this file.  This is the
     # file I will call to test your algorithm.
 
+    opt = Optimizer(func, x0, line_type, dir_type)
+    opt.tau_converge = epsilon_g
+    opt.minimize()
+
+    xopt = opt.Xk_1
+    fopt = opt.phi0
+    outputs = {}
+    outputs['iterations'] = opt.iterations
+    outputs['function_calls'] = opt.function_calls
+    outputs['list_norms'] = opt.list_norm
+    outputs['list_function_calls'] = opt.list_funct_calls
+    outputs['list_function_values'] = opt.list_funct_values
 
     return xopt, fopt, outputs
