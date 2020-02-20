@@ -17,7 +17,7 @@ def truss(A):
     mass, stress = _truss(A)
     mass_gradient = np.empty_like(A)
     stress_gradient = np.empty((A.shape[0],A.shape[0]))
-    perturb = 1e-8
+    perturb = 1e-4
     for i in range(A.shape[0]):
         Xp = deepcopy(A)
         Xp[i] += perturb
