@@ -6,7 +6,7 @@ from IPython.core.debugger import set_trace
 
 import matplotlib.pyplot as plt
 
-from truss_Adjoint import truss
+# from truss_Adjoint import truss
 
 num_evals = 0
 
@@ -122,7 +122,7 @@ def run():
 #         from truss_Adjoint import truss
 
 
-from truss_FD import truss
+from truss_AD import truss
 FD_all_data = run()
 from truss_Adjoint import truss
 Adjoint_all_data = run()
@@ -138,8 +138,8 @@ for i in range(len(FD_all_data)):
     Adjoint_ave_eval += Adjoint_all_data[i]['num_evals']
 
 FD_ave_time /= num_rand
-FD_ave_eval *= 2
-FD_ave_eval *= 10
+# FD_ave_eval *= 2
+# FD_ave_eval *= 10
 FD_ave_eval /= num_rand
 Adjoint_ave_time /= num_rand
 Adjoint_ave_eval /= num_rand
@@ -158,20 +158,20 @@ plt.gcf().subplots_adjust(left=0.15)
 # fig = plt.figure()
 # ax = fig.add_subplot(211,)
 axes[0].set_title("Truss Optimization")
-axes[0].plot(range(0,len(FD_all_data[0]['funct_evals'])*20,20), FD_all_data[0]['funct_evals'], color='green', label='Finite-Difference')
+axes[0].plot(range(0,len(FD_all_data[0]['funct_evals'])*1,1), FD_all_data[0]['funct_evals'], color='green', label='Finite-Difference')
 axes[0].plot(range(len(Adjoint_all_data[0]['funct_evals'])), Adjoint_all_data[0]['funct_evals'], color='orange', label='Adjoint')
 for i in range(1,len(FD_all_data)):
-    axes[0].plot(range(0,len(FD_all_data[i]['funct_evals'])*20,20), FD_all_data[i]['funct_evals'], color='green')
+    axes[0].plot(range(0,len(FD_all_data[i]['funct_evals'])*1,1), FD_all_data[i]['funct_evals'], color='green')
     axes[0].plot(range(len(Adjoint_all_data[i]['funct_evals'])), Adjoint_all_data[i]['funct_evals'], color='orange')
 axes[0].set_ylabel("Mass (lbs)")
 axes[0].set_ylim([0,2000])
 axes[0].legend()
 
 
-axes[1].plot(range(0,len(FD_all_data[0]['const_vio'])*20,20), FD_all_data[0]['const_vio'], color='green', label='Finite-Difference')
+axes[1].plot(range(0,len(FD_all_data[0]['const_vio'])*1,1), FD_all_data[0]['const_vio'], color='green', label='Finite-Difference')
 axes[1].plot(range(len(Adjoint_all_data[0]['const_vio'])), Adjoint_all_data[0]['const_vio'], color='orange', label='Adjoint')
 for i in range(1,len(FD_all_data)):
-    axes[1].plot(range(0,len(FD_all_data[i]['const_vio'])*20,20), FD_all_data[i]['const_vio'], color='green')
+    axes[1].plot(range(0,len(FD_all_data[i]['const_vio'])*1,1), FD_all_data[i]['const_vio'], color='green')
     axes[1].plot(range(len(Adjoint_all_data[i]['const_vio'])), Adjoint_all_data[i]['const_vio'], color='orange')
 axes[1].set_ylabel("Max Constraint")
 axes[1].set_xlabel("Function Calls")

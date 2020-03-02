@@ -9,8 +9,10 @@ import matplotlib.pyplot as plt
 from truss_FD import truss
 
 import argparse
+import pyoptsparse
 from pyoptsparse import Optimization, OPT
 
+print(pyoptsparse.__file__)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--opt",help="optimizer",type=str, default='SNOPT')
