@@ -12,15 +12,16 @@ from truss import truss
 
 
 
-import numpy
-import argparse
-from pyoptsparse import Optimization, OPT
+import pyoptsparse as pyopt
+from pyoptsparse.pyOpt_solution import Solution
+from pyoptsparse.pyOpt_optimization import Optimization
+from pyoptsparse.pyOpt_optimizer import Optimizer
+from pyoptsparse.pyOpt_history import History
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--opt",help="optimizer",type=str, default='SLSQP')
-args = parser.parse_args()
-optOptions = {}
+print(pyopt.__file__)
+
+
 
 #### Objective function
 def objfunc(xx):
@@ -43,6 +44,7 @@ def objfunc(xx):
         conval[i] = stress[i]
 
     funcs['con'] = conval
+    # set_trace()
 
     return funcs, fail
 
@@ -74,7 +76,7 @@ def callbackF2(Xi):
 
 #### Solve
 # Optimization Object
-optProb = Optimization('Truss Problem', objfunc)
+optProb = pyopt.Optimization('Truss Problem', objfunc)
 
 # Design Variables
 optProb.addVarGroup('xvars', 10, 'c',lower=[0.1]*10, upper=None, value=[0.1]*10)
@@ -96,12 +98,10 @@ optProb.addObj('obj')
 print(optProb)
 
 # Optimizer
-opt = OPT(args.opt, options=optOptions)
+optimizer = pyopt.SNOPT()
+sol = optimizer(optProb, storeHistory=f"output/opt_histTruss.hst")
 
-# set_trace()
 
-# Solution
-sol = opt(optProb, sens='FD')
 
 # Check Solution
 print(sol)
