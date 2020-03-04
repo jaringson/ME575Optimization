@@ -4,6 +4,7 @@
 
 \usepackage[margin=1in]{geometry} % change the margins
 \usepackage{amsmath} % useful math environments and commands like align
+\usepackage{amssymb} % assumes amsmath package installed
 \usepackage[colorlinks,bookmarks,bookmarksnumbered,allcolors=blue]{hyperref} % hyperlinks between references
 \usepackage{graphicx}  % include images
 \usepackage[caption=false]{subfig} % subfigures.  false option prevents conflicts in caption styling with other packages
@@ -13,8 +14,14 @@
 \usepackage{cite} % handles multiple citations in one command better
 \usepackage{doi} % allow correct hypderlinking of DOIs
 \usepackage{hyperref}
+\usepackage{algorithm} % for algorithm figure
+\usepackage[title]{appendix}
+\usepackage{pgfplots}
 
 \usepackage{aircraftshapes}
+
+\newcommand{\norm}[1]{\left\Vert{#1}\right\Vert}
+\newcommand{\skewm}[1]{\left[{#1}\right]_{\times}}
 
 
 \begin{document}
@@ -26,20 +33,43 @@
 
  %\href{https://byu.box.com/shared/static/anxheci3eytucrh3ke57k2sqdx0ivmjg.pdf}{homework pdf}
 
-\section*{Constrained Optimization}
+\section*{Introduction}
 
-The following describes and compares several methods for computing derivatives for constrained optimization problems. I choose to implement these methods to solve the 10 member truss problem which seeks to minimize the mass of a 10-truss structure that holds a load suspended horizontally from a wall  while also holding the loads placed on the structure (\cref{fig:truss}). This problem 
+To explore constrained optimization, I choose to implement a simplified version of my final project. My project is to create a evolutionary nonlinear model predictive control for a fixed wing aircraft. We will simplify this problem by removing the evolutionary part and solving the nonlinear model predictive control (NMPC). It is important to note that usually model predictive control is preformed on linearized dynamics to allow for fast quadratic programming optimization. We want to explore solving nonlinear model predictive control which will not linearize the model and therefore is a little harder to solve.
+
+
+
+\section*{Nonlinear Model Predictive Control}
+
+The NMPC problem we want to solve is formulated by
 
 \begin{equation*}
 \begin{aligned}
-\text{minimizes} & \quad J= \sum_{i=1}^{n} Mass(A_i) \\
-\text{with respect to} & \quad A_1 ... A_{n} \\
-\text{subject to} & \quad A_i \ge 0.1 \quad \text{and} \quad | \sigma_i | \le \sigma_y \quad \forall i=1 ... n,
+\text{minimizing} & \quad J= \sum_{k=0}^{T-1} (f(\mathbf{x}_k,\mathbf{u}_k)-\mathbf{x}_{d})^{\top} Q (f(\mathbf{x}_k,\mathbf{u}_k)-\mathbf{x}_{d}) \\
+\text{with respect to} & \quad \mathbf{u}_k =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\end{bmatrix}^{\top} \\
+\text{subject to} & \quad -2 \le s_{a} \le 2, \\
+& \quad -2 \le s_{e} \le 2, \\
+& \quad \hspace{13pt} 0 \le s_{t} \le 1, \\
+& \quad -2 \le s_{r} \le 2,
 \end{aligned}
 \end{equation*}
 
-where $A_i$ is the cross-sectional area, $\sigma_i$ is the corresponding stress, and $\sigma_y$ is the yield stress. Please see this see \href{https://byu.box.com/shared/static/h8gzy7nuzzk42ta7388y1luj3yhgsltq.pdf}{handout} for further details.
+where $f(\mathbf{x}_k,\mathbf{u}_k)$ represents the nonlinear dynamics of a fixed wing aircraft applied with Runge-Kutta 4th order approximation (see Appendix \ref{sec:dynamics} for more details). $\mathbf{x}_k$ and $\mathbf{x}_{d}$ are our calculated state and desired state where,
 
+\begin{equation}
+\label{eq:lqr_current_desired_states}
+\mathbf{x}=\begin{bmatrix}\mathbf{p} \\ \mathbf{v} \\ \mathbf{q} \\ \boldsymbol{\omega}\end{bmatrix}.
+\end{equation}
+
+Furthermore, $Q$ is our cost matrix and initialized as,
+
+\begin{equation}
+Q = \text{diagonal}(\begin{bmatrix}
+	0,0,100,1,0,0,50,50,50,0,0,0
+\end{bmatrix}).
+\end{equation}
+
+I choose this particular cost because I don't necessarily want the aircraft to hit a particular location but to maintain a desired altitude and heading while also maintaining a desired forward velocity. This can be seen in \Cref{fig:fw_waypoints} where the aircraft is some distance away from the the direct path from $w_{i-1}$ to $w_i$. \Cref{fig:vet_field} shows a vector field which slowly places the 
 
 \begin{figure}
 	\centering
@@ -51,141 +81,217 @@ where $A_i$ is the cross-sectional area, $\sigma_i$ is the corresponding stress,
 	\coordinate[label = above left:$w_{i-1}$] (wi1) at (-2,0);
 	\node at (wi1)[circle,fill,inner sep=2.5pt]{};
 	\draw (wi1) -- (wi);
-	\draw [densely dotted] plot [smooth, tension=1] coordinates {(0,0) (-0.1,1.05) (0.5,1.85)};
-	\node [aircraft top,fill=black,minimum width=0.75cm,rotate=105] at (0,0) {};
+	\draw [densely dotted] plot [smooth, tension=1] coordinates {(0,0) (-0.25,1.05) (0.5,1.85)};
+	\node [aircraft top,fill=black,minimum width=0.75cm,rotate=120] at (0,0) {};
 	
 	\end{tikzpicture}
 	
-	
-	
-	
 	\caption{Waypoint Picture.}
-	\label{fig:combined_radars}
+	\label{fig:fw_waypoints}
 	
 \end{figure}
 
-To effectively solve this problem, the optimization methods requires derivatives to be computed. More precisely we need the function  and constraint derivatives or 
-
-
-\begin{equation}
-\frac{\partial m}{\partial A}=
-\begin{bmatrix} 
-\frac{\partial m}{\partial A_1} \\
-\vdots \\
-\frac{\partial m}{\partial A_{n_x}}
-\end{bmatrix}
-\end{equation}
-
-and 
-
-\begin{equation}
-\frac{\partial \sigma}{\partial A}=
-\begin{bmatrix} 
-\frac{\partial \sigma_1}{\partial A_1} & \dots & \frac{\partial \sigma_i}{\partial A_{n_x}} \\
-\vdots & \ddots & \\
-\frac{\partial \sigma_{n_f}}{\partial A_1} &        & \frac{\partial \sigma_{n_f}}{\partial A_{n_x}} 
-\end{bmatrix},
-\end{equation}
-
-where m is the mass of the truss, $n_x$ is the number of truss areas, and $n_f$ is the number of constrained stress elements. In this problem $n_x=n_f$. For a more complete derivation of each of the methods, please consult the \href{https://byu.box.com/shared/static/17bqmaop0v1o0fwqg1etx7dofl6ad35t.pdf}{textbook}.
-
-\subsection*{Finite Difference}
-
-The first group of methods are called the finite-difference approximations. These methods are all derived by combining Taylor series expansions,
-
-$$ f(x+h\hat{e}_j)=f(x)+h\frac{\partial f}{\partial x_j} + \frac{h^2}{2!}\frac{\partial^2f}{\partial x_j^2}+\frac{h^3}{3!}\frac{\partial^3f}{\partial x_j^3
-} + \dots $$
-
-where $h$ is a step size and $\hat{e}_j$ is the unit vector in the $j^{th}$ direction. I choose to implement the central difference method, which combines both the forward and the backward finite difference to obtain a more accurate approximation of the derivatives. The final equation is 
-
-$$ \frac{\partial f}{\partial x_i} = \frac{f(x+h\hat{e}_j) - f(x-h\hat{e}_j)}{2h} + O(h^2), $$
-
-where the $O(h^2)$ represents higher squared terms omitted from the Taylor series expansions. 
-
-The limitation of this method is that you have to evaluate the function for every design variable twice. This means that for the truss problem we need to evaluate the function 10x2=20 times for each gradient approximation. Additionally, this method has truncation and subtraction cancellation errors. The advantage of this method is that it can operate with black boxes, i.e. you don't need access to source code.
-
-\subsection*{Complex Step}
-
-The complex step is similar to the finite-difference step but requires access to the sources code to ensure that the complex values are appropriately calculated. We once again formulate the Taylor series but we take a step in the complex direction, 
-
-$$ f(x+ih\hat{e}_j)=f(x)+ih\frac{\partial f}{\partial x_j} - \frac{h^2}{2!}\frac{\partial^2f}{\partial x_j^2}-i\frac{h^3}{3!}\frac{\partial^3f}{\partial x_j^3
-} + \dots .$$
-
-We then take the imaginary part of both sides and rearrange to get
-
-$$ \frac{\partial f}{\partial x_i} = \frac{Im[f(x+ih\hat{e}_j)]}{h} + O(h^3). $$
-
-This method allows for greater precision, almost exact derivatives up to the function precision.
-
-\subsection*{Algorithmic Differentiation}
-
-The algorithmic differentiation (AD) method is based on the differentiation chain rule. This means that you can build the derivative as you apply the objective function. The AD method has a forward mode and a reverse mode. We choose to implement the forward mode which can be written as:
-
-$$ \frac{dv_i}{dv_j}=\sum_{k=j}^{i-1}\frac{\partial V_i}{\partial v_k}\frac{dv_k}{dv_j}.$$ 
-
-We choose to implement this method using a python library called \href{https://pythonhosted.org/algopy/}{AlgoPy}. The AD method can have precision matching the function evaluation but needs access to the source code.
-
-\subsection*{Adjoint}
-
-The final method is called the Adjoint method, or analytic method. This method linearizes the model to obtain a system of linear equations. The derivative is then calculated by solving for the unknown variables. The method first creates a sets of residuals that need to be driven to zero, $ r = R(x,y(x)) = 0,$ and functions of interest, $ f=F(x,y(x)). $ We then can apply the chain rule to fine the total derivative of f to get,
-
-$$ \frac{df}{dx}=\frac{\partial F}{\partial x}-\frac{\partial F}{\partial y}\left[\frac{\partial R}{\partial y}\right]^{-1} \frac{\partial R}{\partial x}.$$
-
-In our case we need to find the derivative of stress with respect to area. We choose our residual to be $R=Kd-F$, where $K$ is a stiffness matrix, $d$ is a displacement vector, and $F$ is our forces. Our output equation or function of interest is $\sigma=Sd$, with $S$ being a stress matrix. Therefore, our derivative equation becomes,
-
-$$ \frac{d\sigma}{dA}=\frac{\partial \sigma}{\partial A}-\frac{\partial \sigma}{\partial d}\left[\frac{\partial R}{\partial d}\right]^{-1} \frac{\partial R}{\partial A}.$$
-
-The adjoint method is considered the most accurate of the methods because it is analytical. This method also needs access to the source code.
-
-\section*{Average Relative Errors}
-
-I will now compare the relative errors of each of the methods when compared to the Adjoint method. \Cref{tab:comp_der} shows the average relative errors for 100 uniform random areas points spread from 0.1 to 20 $m^2$. For the mass derivative, the complex step and algorithmic differentiation were analytically accurate while the finite-difference was accurate up to 5.3e-5. The stress derivative is the same as result but slightly less accurate for all three methods. 
-
-\begin{table}[htb]
+\begin{figure}
 	\centering
-	\caption{Average relative error for each method with 100 uniformly random starting points.}
-	\label{tab:comp_der}
-	\begin{tabular}{c|c|c}
-		\toprule
-		Algorithm & Mass Derivative & Stress Derivative \\
-		\midrule
-		Finite-Difference & 5.347291203789755e-05 & 0.02727215090088324 \\
-		Complex-Step  & 0.0 & 3.336212472827231e-10 \\
-		Algorithmic Differentiation & 0.0 & 2.1207032039874913e-11 \\
-		\bottomrule
-	\end{tabular}
-\end{table}
+	\begin{tikzpicture}
+	\def\length{sqrt(1+(-pi/6*2/pi * atan(0.1*x))^2)}
+	\begin{axis}[
+	title={},
+	domain=-2:2,
+	view={0}{90},
+	axis background/.style={fill=white},
+	xticklabels={},
+	yticklabels={},
+	ticks=none,
+	]
+	\addplot3[black,
+	quiver={
+		u={-pi/6*2/pi * atan(0.1*x)/\length},
+		v={1/\length},
+		scale arrows=0.3,
+	},
+	-stealth,samples=15]
+	{x};
+	\end{axis}
+	%\draw [very thick][-latex](160pt,20pt)..controls(100pt,25pt) and (60pt,45pt)..(42pt,58pt);
+	%\filldraw(160pt,20pt)circle(2pt) (100pt,25pt)circle (2pt) (60pt,45pt)circle (2pt) (42pt,58pt)circle (2pt);
+	\coordinate[label = above:$w_{i}$] (wi) at (97.5pt,161pt);
+	\node at (wi)[circle,fill,inner sep=2.5pt]{};
+	\coordinate[label = below:$w_{i-1}$] (wi1) at (97.5pt,0pt);
+	\node at (wi1)[circle,fill,inner sep=2.5pt]{};
+	\draw (wi1) -- (wi);
+	
+	\draw [densely dotted] plot [smooth, tension=1] coordinates {(0,0) (-0.25,1.05) (0.5,1.85)};
+	\node [aircraft top,fill=black,minimum width=0.75cm,rotate=120] at (140pt,40pt) {};
+	
+	%\filldraw(97.5pt,161pt)circle(2pt) (97.5pt,0pt)circle(2pt);
+	%\draw[very thick] (97.5pt,161pt) -- (97.5pt,0pt);
+	\end{tikzpicture}
+	\caption{Vector Field.}
+\label{fig:vet_field}
+
+\end{figure}
+
+My design variables $\mathbf{u}_k =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\end{bmatrix}^{\top}$ represent the control inputs to the system and are constrained to be within certain bounds. The aileron, elevator, and rudder are all constrained to be within -2 to 2 radians and the throttle is constrained from 0 to 1. To reduce the number of design variables, I choose to have the inputs applied along a segment of the trajectory and do not choose a new input at every time step. I choose to have 10 control inputs for a time horizon of 1 second with time steps of 0.01 seconds. This means every 0.1 seconds I apply a new control input.
+
+
+
+
+
+\section*{Results}
+
+
+\begin{figure}[htbp]
+	\centering
+	\subfloat[]{
+		\includegraphics[width=0.45\textwidth]{figures/positions1_bc.eps}
+		\label{fig:sub1}
+	}
+	\qquad
+	\subfloat[]{
+		\includegraphics[width=0.45\textwidth]{figures/inputs_bc.eps}
+		\label{fig:sub2}
+	}
+	\caption{label}
+	\label{fig:bc}
+\end{figure}
+
+
+\begin{figure}[htbp]
+	\centering
+	\subfloat[]{
+		\includegraphics[width=0.45\textwidth]{figures/positions1.eps}
+		\label{fig:sub1}
+	}
+	\qquad
+	\subfloat[]{
+		\includegraphics[width=0.45\textwidth]{figures/inputs.eps}
+		\label{fig:sub2}
+	}
+	\caption{label}
+	\label{fig:commanded_dir}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.45\textwidth]{figures/positions2.eps}
+	\caption{label}
+	\label{fig:commanded_dir2}
+\end{figure}
+
+
+
 
 \section*{Convergence}
 
-I next performed the actual optimization for the truss problem using the python library \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{scipy} for the finite-difference method and the adjoint method. \Cref{tab:c} shows the average number of function evaluations and time to solve for each method. I used 25 uniformly random starting areas ranging from 0.1 to 20 $m^2$.
-\Cref{fig:opt10} shows the corresponding convergence plots for each of the methods. Notice that the finite-difference method took roughly 10x or more function calls to converge and appears to be more likely to diverge in the middle than the adjoint method. This is because the finite-difference methods depend on evaluating the function proportional to the number of the design variables and is less accurate than the analytical derivative that the adjoint method provides. 
 
-\begin{table}[htb]
-	\centering
-	\caption{Average function evaluations and time to solve for the finite-difference and adjoint methods for 25 uniformly random starting points.}
-	\label{tab:c}
-	\begin{tabular}{c|c|c}
-		\toprule
-		Algorithm & Function Evaluations & Time to Solve (sec) \\
-		\midrule
-		Finite-Difference & 386.0 & 3.3085175704956056\\
-		Adjoint & 32.96 & 0.25411544799804686 \\
-		\bottomrule
-	\end{tabular}
-\end{table}
+
+
 
 
 
 \section*{Discussion}
 
-Overall it is really efficient for me to calculate the derivatives for a optimization scheme because it means less function calls and reduces the time to solve by an order of 10. The three most accurate methods, complex-step, algorithmic differentiation, and adjoint, each require knowledge of the source code and increase in complexity. If I were to pick, the algorithmic differentiation seems to be the best if you cannot formulate the adjoint method because there are libraries that can help you build the differentiation chain. The adjoint method is the best choice overall because we were able to formulate the residual and solve accordingly. The finite-difference methods are great for black box optimization. 
+
+
+
+
+\begin{appendices}
+	
+\section{Aircraft Dynamics}
+\label{sec:dynamics}
+
+The aircraft's position, velocity, attitude, and angular rate evolve in time according to
+\begin{align}
+\dot{\mathbf{p}}_{b/I}^{I} & =\left(R_{I}^{b}\right)^{\top}\mathbf{v}_{b/I}^{b}\label{eq:lqr_pdot_true}\\
+\dot{\mathbf{v}}_{b/I}^{b} & =\frac{1}{m}\mathbf{f}^{b}-\boldsymbol{\omega}_{b/I}^{b}\times\mathbf{v}_{b/I}^{b}\label{eq:lqr_vdot_true}\\
+\dot{\mathbf{q}}_{I}^{b} & =\boldsymbol{\omega}_{b/I}^{b}\label{eq:lqr_qdot_true}\\
+\dot{\boldsymbol{\omega}}_{b/I}^{b} & =J^{-1}\left(\boldsymbol{\tau}^{b}-\boldsymbol{\omega}_{b/I}^{b}\times J\boldsymbol{\omega}_{b/I}^{b}\right),\label{eq:lqr_omegadot_true}
+\end{align}
+where $m$ is the aircraft's mass, $J$ is the aircraft's inertia matrix, and $\mathbf{f}^b$ and $\boldsymbol{\tau}^b$ are the force and torque applied to the aircraft body~\cite{beard2012small}.
+
+We assume that the aircraft is equipped with the four control inputs: aileron, elevator, throttle, and rudder.
+The aircraft receives a throttle signal $s_t\in\left[0,1\right]$ and signals for aileron, elevator, and rudder given by
+\begin{align}
+s_{a} &= \frac{\delta_{a}}{\delta_{a_{max}}}\in\left[-1,1\right] \\
+s_{e} &= \frac{\delta_{e}}{\delta_{e_{max}}}\in\left[-1,1\right] \\
+s_{r} &= \frac{\delta_{r}}{\delta_{r_{max}}}\in\left[-1,1\right],
+\end{align}
+where $\delta_*$ denotes deflection angle in radians and $\delta_{*_{max}}$ is the physically defined, maximum angle of deflection.
+
+Vehicle air velocity, air speed, angle of attack, and side slip angle are defined by
+\begin{align}
+\mathbf{v}_{a/I}^{b} & =\mathbf{v}_{b/I}^{b}-R_{I}^{b}\mathbf{v}_{w/I}^{I}\\
+V_{a} & =\norm{\mathbf{v}_{a/I}^{b}} \\
+\alpha & =\tan^{-1}\left(\frac{\mathbf{e}_{3}^{\top}\mathbf{v}_{a/I}^{b}}{\mathbf{e}_{1}^{\top}\mathbf{v}_{a/I}^{b}}\right)\\
+\beta & =\sin^{-1}\left(\frac{\mathbf{e}_{2}^{\top}\mathbf{v}_{a/I}^{b}}{V_{a}}\right),
+\end{align}
+where $\mathbf{v}_{w/I}^I$ is the wind velocity expressed in the inertial frame.
+
+Nondimensionalized coefficients of lift and drag are defined by
+\begin{align}
+C_{L}\left(\alpha\right) & =\left(1-\sigma\left(\alpha\right)\right)\left[C_{L_{0}}+C_{L_{\alpha}}\alpha\right]+\sigma\left(\alpha\right)\left[2\mathrm{sign}\left(\alpha\right)\sin^{2}\alpha\cos\alpha\right]\nonumber\\
+C_{D}\left(\alpha\right) & =C_{D_{p}}+\frac{S\left(C_{L_{0}}+C_{L_{\alpha}}\alpha\right)^{2}}{\pi eb^{2}},
+\end{align}
+where
+\begin{equation}
+\sigma\left(\alpha\right) =\frac{1+e^{-M\left(\alpha-\alpha_{0}\right)}+e^{M\left(\alpha+\alpha_{0}\right)}}{\left(1+e^{-M\left(\alpha-\alpha_{0}\right)}\right)\left(1+e^{M\left(\alpha+\alpha_{0}\right)}\right)}.
+\end{equation}
+Nondimensionalized coefficients of force in the body $x$ and $z$ axes are therefore given by
+\begin{align}
+C_{X}\left(\alpha\right) & =-C_{D}\left(\alpha\right)\cos\alpha+C_{L}\left(\alpha\right)\sin\alpha\\
+C_{X_{q}}\left(\alpha\right) & =-C_{D_{q}}\cos\alpha+C_{L_{q}}\sin\alpha\\
+C_{X_{\delta_{e}}}\left(\alpha\right) & =-C_{D_{\delta_{e}}}\cos\alpha+C_{L_{\delta_{e}}}\sin\alpha\\
+C_{Z}\left(\alpha\right) & =-C_{D}\left(\alpha\right)\sin\alpha-C_{L}\left(\alpha\right)\cos\alpha\\
+C_{Z_{q}}\left(\alpha\right) & =-C_{D_{q}}\sin\alpha-C_{L_{q}}\cos\alpha\\
+C_{Z_{\delta_{e}}}\left(\alpha\right) & =-C_{D_{\delta_{e}}}\sin\alpha-C_{L_{\delta_{e}}}\cos\alpha.
+\end{align}
+
+Consequently, the force and torque expressed in the body frame are given by
+\begin{align}
+\mathbf{f}^{b} & =mR_{I}^{b}\mathbf{g}^{I}+\frac{\rho V_{a}^{2}S}{2}\bigg(C_{F}\left(\alpha,\beta\right)+\left.\frac{1}{2V_{a}}C_{F_{\omega}}\left(\alpha\right)\boldsymbol{\omega}_{b/I}^{b}+C_{F_{u}}\left(\alpha\right)\mathbf{u}\right)+\nonumber\\
+&\quad\rho S_{prop}C_{prop}\mathbf{e}_{3}^{\top}\mathbf{u}\left(V_{a}+\mathbf{e}_{3}^{\top}\mathbf{u}\left(k_{motor}-V_{a}\right)\right)\cdot\nonumber\left(k_{motor}-V_{a}\right)\mathbf{e}_{1}\nonumber\\
+\boldsymbol{\tau}^{b} & =\frac{\rho V_{a}^{2}S}{2}C_{bc}\bigg(C_{\tau}\left(\alpha,\beta\right)+\frac{1}{2V_{a}}C_{\tau_{\omega}}\boldsymbol{\omega}_{b/I}^{b}+ C_{\tau_{u}}\mathbf{u}\bigg)-k_{T_{p}}\left(k_{\Omega}\mathbf{e}_{3}^{\top}\mathbf{u}\right)^{2}\mathbf{e}_{1},\nonumber
+\end{align}
+where
+\begin{align}
+\mathbf{u} & =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\end{bmatrix}^{\top}\\
+C_{F}\left(\alpha,\beta\right) & =\begin{bmatrix}C_{X}\left(\alpha\right)\\
+C_{Y_{0}}+C_{Y_{\beta}}\beta\\
+C_{Z}\left(\alpha\right)
+\end{bmatrix}\\
+C_{F_{\omega}}\left(\alpha\right) & =\begin{bmatrix}0 & C_{X_{q}}\left(\alpha\right)c & 0\\
+C_{Y_{p}}b & 0 & C_{Y_{r}}b\\
+0 & C_{Z_{q}}\left(\alpha\right)c & 0
+\end{bmatrix}\\
+C_{F_{u}}\left(\alpha\right) & =\begin{bmatrix}0 & C_{X_{\delta_{e}}}\left(\alpha\right)\delta_{e_{max}} & 0 & 0\\
+C_{Y_{\delta_{a}}}\delta_{a_{max}} & 0 & 0 & C_{Y_{\delta_{r}}}\delta_{r_{max}}\\
+0 & C_{Z_{\delta_{e}}}\left(\alpha\right)\delta_{e_{max}} & 0 & 0
+\end{bmatrix}\\
+C_{bc} & =\begin{bmatrix}b & 0 & 0\\
+0 & c & 0\\
+0 & 0 & b
+\end{bmatrix}\\
+C_{\tau}\left(\alpha,\beta\right) & =\begin{bmatrix}C_{l_{0}}+C_{l_{\beta}}\beta\\
+C_{m_{0}}+C_{m_{\alpha}}\alpha\\
+C_{n_{0}}+C_{n_{\beta}}\beta
+\end{bmatrix}\\
+C_{\tau_{\omega}} & =\begin{bmatrix}C_{l_{p}}b & 0 & C_{l_{r}}b\\
+0 & C_{m_{q}}c & 0\\
+C_{n_{p}}b & 0 & C_{n_{r}}b
+\end{bmatrix}\\
+C_{\tau_{u}} & =\begin{bmatrix}C_{l_{\delta_{a}}}\delta_{a_{max}} & 0 & 0 & C_{l_{\delta_{r}}}\delta_{r_{max}}\\
+0 & C_{m_{\delta_{e}}}\delta_{e_{max}} & 0 & 0\\
+C_{n_{\delta_{a}}}\delta_{a_{max}} & 0 & 0 & C_{n_{\delta_{r}}}\delta_{r_{max}}
+\end{bmatrix}.
+\end{align}
+\end{appendices}
 
 % This is for the bibliography.  Note that it is using sample.bib 
 % you would need to provide your own bibtex file.
 
-%\bibliographystyle{unsrt}
-%\bibliography{sample}
+\bibliographystyle{unsrt}
+\bibliography{references}
 
 
 

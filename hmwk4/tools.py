@@ -1,6 +1,6 @@
 import numpy as np
 import math
-import pdb
+from IPython.core.debugger import set_trace
 import warnings
 
 def boxminus(q1,q2):
@@ -16,13 +16,12 @@ def boxminus(q1,q2):
     q2y = q2[2]
     q2z = q2[3]
     dq = np.zeros_like(q1)
-    dq[0] = q1w*q2w - q1x*q2x - q1y*q2y - q1z*q2z
-    dq[1] = q1w*q2x + q1x*q2w + q1y*q2z - q1z*q2y
-    dq[2] = q1w*q2y - q1x*q2z + q1y*q2w + q1z*q2x
-    dq[3] = q1w*q2z + q1x*q2y - q1y*q2x + q1z*q2w
+    dq[0] = q2w*q1w - q2x*q1x - q2y*q1y - q2z*q1z
+    dq[1] = q2w*q1x + q2x*q1w + q2y*q1z - q2z*q1y
+    dq[2] = q2w*q1y - q2x*q1z + q2y*q1w + q2z*q1x
+    dq[3] = q2w*q1z + q2x*q1y - q2y*q1x + q2z*q1w
 
     # print("dq",dq)
-    # pdb.set_trace()
     dq[0][dq[0] < 0] = -1.0*dq[0][dq[0] < 0]
 
     dqw = dq[0]

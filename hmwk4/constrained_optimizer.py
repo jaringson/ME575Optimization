@@ -18,7 +18,7 @@ def obj_func(u, dt, fw, xgoal):
     # u = u.reshape((4,2))
     fw._state = deepcopy(fw._start)
 
-    Q = 0.1*np.diag([0,0,100, 1,0.1,0.1, 50,50,50, 0,0,0])
+    Q = 0.1*np.diag([0,0,100, 1,0,0, 50,50,50, 0,0,0])
     Qx = np.zeros((fw.numStates-1,fw.numStates))
 
     spot = 0
@@ -43,11 +43,13 @@ def obj_func(u, dt, fw, xgoal):
         one = (x[0:6]-xgoal[0:6]).T.dot(Q[0:6,0:6].dot(x[0:6]-xgoal[0:6]))
         two =  boxminus(deepcopy(x[6:10]),deepcopy(xgoal[6:10])).T @ Q[6:9,6:9] @ boxminus(deepcopy(x[6:10]),deepcopy(xgoal[6:10]))
         three = (x[10:]-xgoal[10:]).T.dot(Q[9:,9:].dot(x[10:]-xgoal[10:]))
-        # print(one,two,three)
         cost += one[0,0] + two[0,0] + three[0,0]
 
+    # print(one,two,three)
+    # set_trace()
     # print(fw._state)
     # print(u)
+    # print(cost)
     return cost
 
 def constrained_obj_func(u, dt, fw, xgoal, mu, ub, lb):
@@ -60,13 +62,13 @@ def constrained_obj_func(u, dt, fw, xgoal, mu, ub, lb):
     upper = upper[upper>0]**2
     lower = lower[lower>0]**2
     cost = fx_cost + mu/2 * (np.sum(upper) + np.sum(lower))
-    print(cost)
+    # print(cost)
     # set_trace()
 
     return cost
 
 
-horizon = 10
+horizon = 100
 num_pts = 10
 dt = 0.01
 
@@ -77,7 +79,7 @@ u0[:,2] = 0.5
 u0 = u0.flatten()
 
 
-# bounds = [(-1,1),(-1,1),(0,1),(-1,1)]*num_pts
+bounds = [(-1,1),(-1,1),(0,1),(-1,1)]*num_pts
 ub = 2*np.ones((num_pts,4))
 ub[:,2] = 1
 ub = ub.flatten()
@@ -91,9 +93,9 @@ mu = 10
 # u0 = np.zeros(4)
 
 
-phi0 = 0.  # roll angle
+phi0 = 0  # roll angle
 theta0 =  0.  # pitch angle
-psi0 = np.pi/2  # yaw angle
+psi0 = 0  # yaw angle
 
 e = Euler2Quaternion(phi0, theta0, psi0, 1)
 e0 = e.item(0)
@@ -114,13 +116,30 @@ xgoal = np.array([[0],  # (0)
                    [0],    # (10)
                    [0],    # (11)
                    [0]])   # (12)
-
-
-
-out = minimize(constrained_obj_func,
+start = time.time()
+out = minimize(obj_func,
     u0,
-    args=(dt,fw,xgoal,mu,ub,lb),
+    args=(dt,fw,xgoal),
     method="SLSQP",
+    bounds=bounds,
     options={'disp':True})
-print(out)
-print(fw._state)
+# print(out)
+# print(fw._state)
+print("SCIPY: ", time.time()-start)
+
+start = time.time()
+while True:
+    out = minimize(constrained_obj_func,
+        u0,
+        args=(dt,fw,xgoal,mu,ub,lb),
+        method="SLSQP",
+        options={'disp':True})
+    # print(out)
+    # print(fw._state)
+
+    # set_trace()
+    if np.linalg.norm(u0-out.x) < 1e-2:
+        break
+    u0 = deepcopy(out.x)
+    mu *= 10
+print("Penality: ", time.time()-start)
