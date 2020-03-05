@@ -36,7 +36,7 @@
 
 \section*{Introduction}
 
-To explore constrained optimization, I choose to implement a simplified version of my final project. My project is to create a evolutionary nonlinear model predictive control for a fixed wing aircraft. We will simplify this problem by removing the evolutionary part and solving the nonlinear model predictive control (NMPC). It is important to note that usually model predictive control is preformed on linearized dynamics to allow for fast quadratic programming optimization. We want to explore solving nonlinear model predictive control which will not linearize the model and therefore is a little harder to solve.
+To explore constrained optimization, I choose to implement a simplified version of my final project. My project is to create a evolutionary nonlinear model predictive control for a fixed wing aircraft. We will simplify this problem by removing the evolutionary part and solving the nonlinear model predictive control (NMPC). It is important to note that usually model predictive control is preformed on linearized dynamics to allow for fast quadratic programming optimization. We want to explore solving nonlinear model predictive control which will not linearize the model and therefore is a little harder to solve. Finally, we will explore one constrained optimization technique and compare it to \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{scipy}'s constrained optimization.
 
 
 
@@ -130,16 +130,16 @@ where $\chi_l$ is the course angle of our line, and $\check{\chi}$ is the desire
 	%\filldraw(97.5pt,161pt)circle(2pt) (97.5pt,0pt)circle(2pt);
 	%\draw[very thick] (97.5pt,161pt) -- (97.5pt,0pt);
 	\end{tikzpicture}
-	\caption{Vector Field.}
+	\caption{A vector field which converges onto a path from one waypoint to another.}
 \label{fig:vet_field}
 
 \end{figure}
 
-My design variables $\mathbf{u}_k =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\end{bmatrix}^{\top}$ represent the control inputs to the system and are constrained to be within certain bounds. The aileron, elevator, and rudder are all constrained to be within -2 to 2 radians and the throttle is constrained from 0 to 1. To reduce the number of design variables, I choose to have the inputs applied along a segment of the trajectory and do not choose a new input at every time step. I choose to have 10 control inputs for a time horizon of 1 second with time steps of 0.01 seconds. This means every 0.1 seconds I apply a new control input.
+My design variables $\mathbf{u}_k =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\end{bmatrix}^{\top}$ represent the control inputs to the system and are constrained to be within certain bounds. The aileron, elevator, and rudder are all constrained to be within -2 to 2 radians and the throttle is constrained from 0 to 1. To reduce the number of design variables, I choose to have the inputs applied along a segment of the trajectory and do not choose a new input at every time step. I choose to have 10 control inputs for a time horizon of 1 second with time steps of 0.01 seconds. This means every 0.1 seconds I apply a new control input. \Cref{fig:sub2,fig:cd2} shows only 10 inputs applies over the trajectory of 1 second for two separate test cases.
 
 \section*{Penalty Method}
 
-The penalty method is a way to incorporate inequality constraints into a cost function. This method weights active constraints heavily to prevent the optimization from heading into the infeasible regions. A summary of the method is provided in \Cref{alg:penalty_summary}, where $J$ and $g_i$ are the objective function and constraints provided by \Cref{eq:objective}. 
+The penalty method is a way to incorporate inequality constraints into a cost function. This method weights active constraints heavily to prevent the optimization from heading too far into the infeasible regions. A summary of the method is provided in \Cref{alg:penalty_summary}, where $J$ and $g_i$ are the objective function and constraints provided by \Cref{eq:objective}. 
 
 \begin{algorithm}
 	\caption{Penalty Summary}\label{alg:penalty_summary}
@@ -160,29 +160,27 @@ While basic in nature, this method is always slightly infeasible and therefore t
 
 \section*{Results}
 
-I will now compare two methods for solving the optimization (\cref{eq:objective}). The first is my own implementation of the penalty method while the other uses the python \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{scipy} library for constrained optimization. 
+I will now compare two methods for solving the optimization (\cref{eq:objective}). The first is my own implementation of the penalty method while the other uses the python scipy library for constrained optimization. These results will compare a single optimization over one trajectory. Typically we will want to resolve this optimization at every time step. The desired states for each test case are show by
 
-The following figures are based on 
+\begin{equation}
+x_{d1}=
+\begin{bmatrix}
+	0 \\ 0 \\ -100 \\ 15 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\ 0 \\
+\end{bmatrix},  \quad
+x_{d2}=
+\begin{bmatrix}
+0 \\ 0 \\ -100 \\ 15 \\ 0 \\ 0 \\ 0.7854 \\ 0 \\ 1.5708 \\ 0 \\ 0 \\ 0 \\
+\end{bmatrix}, 
+\end{equation}
 
-\subsection*{Convergence Efficiency}
+where $x_{d1}$ is the desired state for case 1 and $x_{d2}$ is the desired state for case 2. Notice that I don't command a desired positions except for an altitude and only a forward velocity. This is because I only really care about the heading in the right direction. For case two I also commanded a 45 deg roll so that the aircraft can continue to turn once we solve for additional time steps.
 
 
-\begin{table}[htb]
-	\centering
-	\caption{We measure can measure convergence efficiency...}
-	\label{tab:comp_der}
-	\begin{tabular}{c|c|c|c|c|c}
-		\toprule
-		Algorithm & Solve Time (s) & Function Evals & Total Trajectory Error & Final Step Error & Infeasibility\\
-		\midrule
-		Penalty & 811.865 & 13637 & 321.7905788460184 & 8.50862775 & 8.321e-11\\
-		Scipy  & 73.287 & 1233 & 511.527615186540860 & 11.03405189 & 0.0 \\
-		\bottomrule
-	\end{tabular}
-\end{table}
+\Cref{fig:bc,fig:commanded_dir} show the results of the test cases. The first case (\cref{fig:bc}) shows the aircraft already on the commanded heading while the second (\cref{fig:commanded_dir}) shows the aircraft being commanded to perform a 90 deg turn to the right. Both of these cases produce similar visual responses from the penalty and the scipy methods. Notice, however, that the penalty method is able to turn a little more sharply than the scipy method (\cref{fig:cd1}). Additionally, the two methods appear to have large differences for the inputs (\cref{fig:sub2,fig:cd2}). This is especially true in elevator and rudder, less true in aileron, and even less true for throttle.
 
-Penalty:  seconds
-Scipy:  seconds
+
+
+
 
 \begin{figure}[htbp]
 	\centering
@@ -195,7 +193,7 @@ Scipy:  seconds
 		\includegraphics[width=0.45\textwidth]{figures/inputs_bc.eps}
 		\label{fig:sub2}
 	}
-	\caption{label}
+	\caption{Case 1 is a base case to see if the optimization knows how to keep the aircraft in level flight.}
 	\label{fig:bc}
 \end{figure}
 
@@ -204,16 +202,32 @@ Scipy:  seconds
 	\centering
 	\subfloat[]{
 		\includegraphics[width=0.45\textwidth]{figures/positions2.eps}
-		\label{fig:sub1}
+		\label{fig:cd1}
 	}
 	\qquad
 	\subfloat[]{
 		\includegraphics[width=0.45\textwidth]{figures/inputs.eps}
-		\label{fig:sub2}
+		\label{fig:cd2}
 	}
-	\caption{label}
+	\caption{Case 2 tests the aircraft's ability to turn 90 degrees.}
 	\label{fig:commanded_dir}
 \end{figure}
+
+\Cref{tab:comp_der} further compares the convergence of the two methods. The penalty method takes more than 10x as long to run and 10x the number of function evaluations because the method minimizes the objective several times while dynamically changing $\mu$. This is also the reason why the penalty method has less error over the total trajectory and less error on the final state. Finally, the penalty method is slightly infeasible while the scipy method is 100\% feasible.
+
+\begin{table}[htb]
+	\centering
+	\caption{We measured convergence efficiency through solve time, number of function evaluations, total trajectory error, final state error, and infeasibility.}
+	\label{tab:comp_der}
+	\begin{tabular}{c|c|c|c|c|c}
+		\toprule
+		Algorithm & Solve Time (s) & Function Evals & Total Trajectory Error & Final State Error & Infeasibility\\
+		\midrule
+		Penalty & 811.865 & 13637 & 321.7905788460184 & 8.50862775 & 8.321e-11\\
+		Scipy  & 73.287 & 1233 & 511.527615186540860 & 11.03405189 & 0.0 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
 
 %\begin{figure}[htbp]
 %	\centering
@@ -230,9 +244,11 @@ Scipy:  seconds
 
 \section*{Discussion}
 
-Lessons Learned
+Overall, I learned a lot about my final project and how it applies to a fixed-wing aircraft. I began to put together pieces, such as fixed-wing dynamics, NMPC solver, and vector fields. Each of the pieces will aid me in excelling in my final project.
 
-Plans for final project
+I also learned about constrained optimization. It surprised me that the penalty method actually was really great at finding a better solution when compared with solving the scipy constrained method once. I was also surprised that the penalty method was only slightly infeasible. The trade off, of course, was that it took a really long time to solve. 
+
+One major plan for expanding this work to the final project involves implementing an evolutionary algorithm. This will be no small task and will represent a bulk of was we will expand. Additionally, I will have to improve upon the speed of the optimization. To efficiently fly an aircraft in real time, we will need to speed up the solve time 100x. Finally, I will need to expand this work for an fixed-wing to fly orbits and verify that the fixed-wing can actually reach waypoints over several solved iterations.
 
 
 
