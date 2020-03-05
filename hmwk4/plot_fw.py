@@ -112,9 +112,9 @@ all_x_sci, all_u_sci, all_time_sci = obj_func(u_sci, dt, fw_sci)
 
 
 fig = plt.figure()
-
 gs = fig.add_gridspec(3,1)
 ax1 = fig.add_subplot(gs[0:2, 0])
+plt.tight_layout()
 
 ax1.set_title("Fixed Wing Positions")
 ax1.plot(all_x_pen[0,:], -all_x_pen[1,:], label="Penalty")
@@ -130,6 +130,7 @@ ax2.plot(all_time_sci, -all_x_sci[2,:])
 ax2.set_ylabel('Z (m)')
 ax2.set_xlabel('Time (s)')
 ax2.set_ylim(98,101)
+plt.tight_layout()
 
 # fig, axes = plt.subplots(nrows=1, ncols=1, sharex=True)
 # axes.set_title("Fixed Wing Positions")

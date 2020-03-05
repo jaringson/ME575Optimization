@@ -23,7 +23,7 @@ def obj_func(u, dt, fw, xgoal):
 
     spot = 0
     counter = 0
-    u_now = u[4*spot: 4*spot+4]
+    u_now = deepcopy(u[4*spot: 4*spot+4])
 
     for i in range(horizon):
         counter += 1
@@ -31,7 +31,8 @@ def obj_func(u, dt, fw, xgoal):
             spot += 1
             # print(spot,i)
             # set_trace()
-            u_now = u[4*spot: 4*spot+4]
+            u_now = deepcopy(u[4*spot: 4*spot+4])
+
             counter = 0
         # print(4*i,4*i+4)
         # u_now = u[4*i:4*i+4]
@@ -50,6 +51,7 @@ def obj_func(u, dt, fw, xgoal):
     # print(fw._state)
     # print(u)
     # print(cost)
+    # set_trace()
     return cost
 
 def constrained_obj_func(u, dt, fw, xgoal, mu, ub, lb):
@@ -92,6 +94,14 @@ mu = 10
 
 # u0 = np.zeros(4)
 
+u0 = np.array([ 1.99968847, -1.99937726,  0.99963555, -1.99974936, -1.85635716,
+       -1.23882894,  0.99955841, -2.00000374,  0.18832958,  1.06771522,
+        0.99962614,  1.260342  , -0.53428481, -2.00000832,  0.9997045 ,
+        0.02068783, -0.28880833, -0.6296831 ,  0.99978117, -0.42219638,
+       -0.24789309, -1.16855602,  0.99984204, -0.32701288, -0.29349161,
+       -1.04229027,  0.99988301, -0.54846785, -0.22825965, -1.09610842,
+        0.99997923, -0.39563048, -0.32289351, -1.35541227,  0.99995413,
+       -0.41654092, -0.21861447, -0.89845965,  0.99999614, -0.41061412])
 
 phi0 = 0  # roll angle
 theta0 =  0.  # pitch angle

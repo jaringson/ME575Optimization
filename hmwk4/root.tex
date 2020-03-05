@@ -14,9 +14,10 @@
 \usepackage{cite} % handles multiple citations in one command better
 \usepackage{doi} % allow correct hypderlinking of DOIs
 \usepackage{hyperref}
-\usepackage{algorithm} % for algorithm figure
 \usepackage[title]{appendix}
 \usepackage{pgfplots}
+\usepackage{algorithm} % for algorithm figure
+\usepackage{algpseudocode} % for algorithm figure
 
 \usepackage{aircraftshapes}
 
@@ -43,7 +44,8 @@ To explore constrained optimization, I choose to implement a simplified version 
 
 The NMPC problem we want to solve is formulated by
 
-\begin{equation*}
+\begin{equation}
+\label{eq:objective}
 \begin{aligned}
 \text{minimizing} & \quad J= \sum_{k=0}^{T-1} (f(\mathbf{x}_k,\mathbf{u}_k)-\mathbf{x}_{d})^{\top} Q (f(\mathbf{x}_k,\mathbf{u}_k)-\mathbf{x}_{d}) \\
 \text{with respect to} & \quad \mathbf{u}_k =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\end{bmatrix}^{\top} \\
@@ -52,7 +54,7 @@ The NMPC problem we want to solve is formulated by
 & \quad \hspace{13pt} 0 \le s_{t} \le 1, \\
 & \quad -2 \le s_{r} \le 2,
 \end{aligned}
-\end{equation*}
+\end{equation}
 
 where $f(\mathbf{x}_k,\mathbf{u}_k)$ represents the nonlinear dynamics of a fixed wing aircraft applied with Runge-Kutta 4th order approximation (see Appendix \ref{sec:dynamics} for more details). $\mathbf{x}_k$ and $\mathbf{x}_{d}$ are our calculated state and desired state where,
 
@@ -69,27 +71,28 @@ Q = \text{diagonal}(\begin{bmatrix}
 \end{bmatrix}).
 \end{equation}
 
-I choose this particular cost because I don't necessarily want the aircraft to hit a particular location but to maintain a desired altitude and heading while also maintaining a desired forward velocity. This can be seen in \Cref{fig:fw_waypoints} where the aircraft is some distance away from the the direct path from $w_{i-1}$ to $w_i$. \Cref{fig:vet_field} shows a vector field which slowly places the 
+I choose this particular cost because I don't necessarily want the aircraft to hit a particular location but to maintain a desired altitude and heading while also maintaining a desired forward velocity. This can be seen in \Cref{fig:vet_field} where the aircraft is some distance away from the the direct path from $w_{i-1}$ to $w_i$. \Cref{fig:vet_field} also shows a vector field which slowly places the aircraft onto a course to the next waypoint. This vector field allows us to define the commanded heading of the aircraft as we are far away from the desired path. this vector field is defined as,
 
-\begin{figure}
-	\centering
-	
-	\begin{tikzpicture}
-	
-	\coordinate[label = above right:$w_{i}$] (wi) at (2,3);
-	\node at (wi)[circle,fill,inner sep=2.5pt]{};
-	\coordinate[label = above left:$w_{i-1}$] (wi1) at (-2,0);
-	\node at (wi1)[circle,fill,inner sep=2.5pt]{};
-	\draw (wi1) -- (wi);
-	\draw [densely dotted] plot [smooth, tension=1] coordinates {(0,0) (-0.25,1.05) (0.5,1.85)};
-	\node [aircraft top,fill=black,minimum width=0.75cm,rotate=120] at (0,0) {};
-	
-	\end{tikzpicture}
-	
-	\caption{Waypoint Picture.}
-	\label{fig:fw_waypoints}
-	
-\end{figure}
+\begin{equation}
+\check{\chi}=\chi_{l}-\chi_{\infty}\frac{2}{\pi}\tan^{-1}\left(k_{\chi}\mathbf{e}_{2}\right),
+\end{equation}
+
+where $\chi_l$ is the course angle of our line, and $\check{\chi}$ is the desired course angle. Furthermore, $k_\chi$ is a positive gain and $\chi_\infty$ is the maximum allowed difference between $\check{\chi}$ and $\chi_l$.
+
+%\begin{figure}
+%	\centering
+%	\begin{tikzpicture}
+%	\coordinate[label = above right:$w_{i}$] (wi) at (2,3);
+%	\node at (wi)[circle,fill,inner sep=2.5pt]{};
+%	\coordinate[label = above left:$w_{i-1}$] (wi1) at (-2,0);
+%	\node at (wi1)[circle,fill,inner sep=2.5pt]{};
+%	\draw (wi1) -- (wi);
+%	\draw [densely dotted] plot [smooth, tension=1] coordinates {(0,0) (-0.25,1.05) (0.5,1.85)};
+%	\node [aircraft top,fill=black,minimum width=0.75cm,rotate=120] at (0,0) {};
+%	\end{tikzpicture}
+%	\caption{Waypoint Picture.}
+%	\label{fig:fw_waypoints}	
+%\end{figure}
 
 \begin{figure}
 	\centering
@@ -119,10 +122,10 @@ I choose this particular cost because I don't necessarily want the aircraft to h
 	\node at (wi)[circle,fill,inner sep=2.5pt]{};
 	\coordinate[label = below:$w_{i-1}$] (wi1) at (97.5pt,0pt);
 	\node at (wi1)[circle,fill,inner sep=2.5pt]{};
-	\draw (wi1) -- (wi);
+	\draw[very thick] (wi1) -- (wi);
 	
-	\draw [densely dotted] plot [smooth, tension=1] coordinates {(0,0) (-0.25,1.05) (0.5,1.85)};
-	\node [aircraft top,fill=black,minimum width=0.75cm,rotate=120] at (140pt,40pt) {};
+	\draw [line width=2pt, dash pattern=on \pgflinewidth off 2pt] plot [smooth, tension=0.75] coordinates {(140pt,37pt) (105pt,60pt) (97.5pt,100pt)};
+	\node [aircraft top,fill=black,minimum width=0.75cm,rotate=160] at (150pt,33.5pt) {};
 	
 	%\filldraw(97.5pt,161pt)circle(2pt) (97.5pt,0pt)circle(2pt);
 	%\draw[very thick] (97.5pt,161pt) -- (97.5pt,0pt);
@@ -134,12 +137,52 @@ I choose this particular cost because I don't necessarily want the aircraft to h
 
 My design variables $\mathbf{u}_k =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\end{bmatrix}^{\top}$ represent the control inputs to the system and are constrained to be within certain bounds. The aileron, elevator, and rudder are all constrained to be within -2 to 2 radians and the throttle is constrained from 0 to 1. To reduce the number of design variables, I choose to have the inputs applied along a segment of the trajectory and do not choose a new input at every time step. I choose to have 10 control inputs for a time horizon of 1 second with time steps of 0.01 seconds. This means every 0.1 seconds I apply a new control input.
 
+\section*{Penalty Method}
+
+The penalty method is a way to incorporate inequality constraints into a cost function. This method weights active constraints heavily to prevent the optimization from heading into the infeasible regions. A summary of the method is provided in \Cref{alg:penalty_summary}, where $J$ and $g_i$ are the objective function and constraints provided by \Cref{eq:objective}. 
+
+\begin{algorithm}
+	\caption{Penalty Summary}\label{alg:penalty_summary}
+	\begin{algorithmic}[1]
+		\item Initialize $\mathbf{x}_k = \mathbf{x}^\star$, $\epsilon=0.01$, $\mu_k=10$, and $\rho=10$
+		\While{$\norm{\sum \mathbf{u} - \sum \mathbf{u}_d} > \epsilon$}
+		\State $F = J + \frac{\mu}{2}\sum_{i=0}\max[0,g_i]^2$
+		\State minimize $F$
+		\State $\mu_{k+1} = \rho\mu_k$
+		\State $\mathbf{x}_{k+1} = \mathbf{x}_k$
+		\EndWhile
+	\end{algorithmic}
+\end{algorithm}
 
 
+While basic in nature, this method is always slightly infeasible and therefore the final results have to be slightly adjusted to fit within a feasible range.
 
 
 \section*{Results}
 
+I will now compare two methods for solving the optimization (\cref{eq:objective}). The first is my own implementation of the penalty method while the other uses the python \href{https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html}{scipy} library for constrained optimization. 
+
+The following figures are based on 
+
+\subsection*{Convergence Efficiency}
+
+
+\begin{table}[htb]
+	\centering
+	\caption{We measure can measure convergence efficiency...}
+	\label{tab:comp_der}
+	\begin{tabular}{c|c|c|c|c|c}
+		\toprule
+		Algorithm & Solve Time (s) & Function Evals & Total Trajectory Error & Final Step Error & Infeasibility\\
+		\midrule
+		Penalty & 811.865 & 13637 & 321.7905788460184 & 8.50862775 & 8.321e-11\\
+		Scipy  & 73.287 & 1233 & 511.527615186540860 & 11.03405189 & 0.0 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+Penalty:  seconds
+Scipy:  seconds
 
 \begin{figure}[htbp]
 	\centering
@@ -160,7 +203,7 @@ My design variables $\mathbf{u}_k =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\
 \begin{figure}[htbp]
 	\centering
 	\subfloat[]{
-		\includegraphics[width=0.45\textwidth]{figures/positions1.eps}
+		\includegraphics[width=0.45\textwidth]{figures/positions2.eps}
 		\label{fig:sub1}
 	}
 	\qquad
@@ -172,17 +215,12 @@ My design variables $\mathbf{u}_k =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\
 	\label{fig:commanded_dir}
 \end{figure}
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=0.45\textwidth]{figures/positions2.eps}
-	\caption{label}
-	\label{fig:commanded_dir2}
-\end{figure}
-
-
-
-
-\section*{Convergence}
+%\begin{figure}[htbp]
+%	\centering
+%	\includegraphics[width=0.45\textwidth]{figures/positions2.eps}
+%	\caption{label}
+%	\label{fig:commanded_dir2}
+%\end{figure}
 
 
 
@@ -192,7 +230,9 @@ My design variables $\mathbf{u}_k =\begin{bmatrix}s_{a} & s_{e} & s_{t} & s_{r}\
 
 \section*{Discussion}
 
+Lessons Learned
 
+Plans for final project
 
 
 
