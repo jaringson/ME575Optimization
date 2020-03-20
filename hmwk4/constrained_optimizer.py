@@ -70,7 +70,7 @@ def constrained_obj_func(u, dt, fw, xgoal, mu, ub, lb):
     return cost
 
 
-horizon = 100
+horizon = 10
 num_pts = 10
 dt = 0.01
 

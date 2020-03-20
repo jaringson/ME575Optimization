@@ -1,3 +1,6 @@
 [submodule "final_paper"]
 	path = final_paper
 	url = git@github.com:jaringson/ME595FinalProjectPaper.git
+[submodule "NEMPC"]
+	path = NEMPC
+	url = git@github.com:jaringson/NEMPC.git
