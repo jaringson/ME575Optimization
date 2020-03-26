@@ -27,9 +27,14 @@ def boxminus(q1,q2):
     dqw = dq[0]
     dqv = dq[1:]
     normV = np.sum(np.abs(dqv)**2,axis=0)**(1./2)
-    out = np.zeros_like(q1)
+    out = np.zeros((3,q1.shape[1]))
+    out2 = 2.0*np.arctan2(normV,dqw)*dqv/normV
 
-    return 2.0*np.arctan2(normV,dqw)*dqv/normV * (normV > 1e-8).astype(int)
+    out[:,normV > 1e-8] = out2[:,normV > 1e-8]
+    # set_trace()
+
+
+    return out
 
 def wrapAngle(angle, amt=np.pi):
 

@@ -54,12 +54,13 @@ finite = False
 
 fit = minimize(rosenbrock,
     x0,
-    #method="BFGS",
+    # method="BFGS",
     method="Nelder-Mead",
     args=(n, grad, finite),
     jac=grad,
     options={'disp':True, 'maxiter': 5000000, 'adaptive':True})
 print(fit.x)
+print('Error: ', np.linalg.norm(fit.x - 1))
 
 # import nevergrad as ng
 #
